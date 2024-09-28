@@ -1,20 +1,41 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Grid : MonoBehaviour
 {
-    [SerializeField] private Vector2 gridSize;
-    [SerializeField] private float squareSize;
+    // Static variables
+    public static Grid Instance;
 
-    private Dictionary<Vector2, Object> spots;
+    // Public variables
+    public float tileSize;
+    public Vector2 gridSize;
+
+    // Properties
+    public Transform Pivot { get => pivot; }
+
+    // Private variables
+    [SerializeField] private Transform pivot;
+    private Dictionary<Vector2, GridElement> tiles;
 
     void Start()
     {
-        spots = new Dictionary<Vector2, Object>();
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(this);
+        }
+        else
+        {
+            Destroy(this);
+        }
+
+        tiles = new Dictionary<Vector2, GridElement>();
     }
 
     public void OccupySpots() { }
     public void DisoccupySpots() { }
-    public void CheckSpotAvailability() { }
+    public void CheckSpotAvailability(GridElement gridElement)
+    {
+    
+    }
 }

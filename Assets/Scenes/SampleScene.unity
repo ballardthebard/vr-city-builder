@@ -234,9 +234,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1695773749}
   - {fileID: 347731499}
-  - {fileID: 758022796}
+  - {fileID: 1695773749}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &440697994
@@ -251,8 +250,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1005b1756a97d66448438515aa8e8276, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  tileSize: 0.1
   gridSize: {x: 30, y: 30}
-  squareSize: 0.1
+  pivot: {fileID: 673453429}
 --- !u!1 &558324166
 GameObject:
   m_ObjectHideFlags: 0
@@ -278,11 +278,42 @@ Transform:
   m_GameObject: {fileID: 558324166}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.049997117, y: 0, z: -0.15000278}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: -4.999709, y: 0, z: -5.000091}
+  m_LocalScale: {x: 100, y: 10, z: 33.333336}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 758022796}
+  m_Father: {fileID: 2034091062}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &673453428
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 673453429}
+  m_Layer: 0
+  m_Name: Pivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &673453429
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 673453428}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -5, y: 0, z: -5}
+  m_LocalScale: {x: 3.333333, y: 1, z: 3.333333}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 347731499}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &705507993
 GameObject:
@@ -492,6 +523,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 758022796}
+  - component: {fileID: 758022797}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -507,16 +539,31 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 758022795}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.04999712, y: 0.21352923, z: -0.1500028}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.3856, y: 1.3845292, z: -1.2732}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1054036070}
   - {fileID: 2034091062}
-  - {fileID: 558324167}
-  m_Father: {fileID: 440697993}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &758022797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 758022795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02f078c41a69e49439456e1f99719711, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pivot: {fileID: 558324167}
+  gridLayerMask:
+    serializedVersion: 2
+    m_Bits: 64
 --- !u!1 &1054036066
 GameObject:
   m_ObjectHideFlags: 0
@@ -530,7 +577,7 @@ GameObject:
   - component: {fileID: 1054036068}
   - component: {fileID: 1054036067}
   m_Layer: 0
-  m_Name: Cube
+  m_Name: Mesh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -843,7 +890,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 8088212471296107554, guid: ca800884fb561e24fbc3c77ef1589c88, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 558324167}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ca800884fb561e24fbc3c77ef1589c88, type: 3}
 --- !u!4 &2034091062 stripped
@@ -903,9 +953,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: GridPlane
       objectReference: {fileID: 0}
+    - target: {fileID: 8633361547379358239, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 6350421730782195053, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 673453429}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
 --- !u!1660057539 &9223372036854775807
@@ -916,3 +973,4 @@ SceneRoots:
   - {fileID: 319410435}
   - {fileID: 729866886}
   - {fileID: 440697993}
+  - {fileID: 758022796}
