@@ -8,14 +8,15 @@ public class Grid : MonoBehaviour
 
     // Public variables
     public float tileSize;
-    public Vector2 gridSize;
+    public int xSize;
+    public int ySize;
 
     // Properties
     public Transform Pivot { get => pivot; }
 
     // Private variables
     [SerializeField] private Transform pivot;
-    private Dictionary<Vector2, GridElement> tiles;
+    private GridElement[][] tiles;
 
     void Start()
     {
@@ -29,13 +30,82 @@ public class Grid : MonoBehaviour
             Destroy(this);
         }
 
-        tiles = new Dictionary<Vector2, GridElement>();
+        tiles = new GridElement[xSize][];
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            tiles[i] = new GridElement[ySize];
+        }
     }
 
-    public void OccupySpots() { }
-    public void DisoccupySpots() { }
-    public void CheckSpotAvailability(GridElement gridElement)
+    public void UpdateTile(int xGrid, int yGrid, GridElement gridElement = null)
     {
-    
+        tiles[xGrid][yGrid] = gridElement;
+    }
+
+    public bool CheckTilesAvailability(GridElement gridElement)
+    {
+        Vector2 index = GetElementPivotGridPosition(gridElement);
+        int rotationOffset = Mathf.RoundToInt(gridElement.transform.rotation.eulerAngles.y / 90);
+
+        if (index.x < 0 || index.y < 0) return false;
+
+        int xGrid;
+        int yGrid;
+
+        // Only check tiles the element is hoovering
+        for (int i = 0; i < gridElement.GridSize.x; i++)
+        {
+            for (int j = 0; j < gridElement.GridSize.y; j++)
+            {
+                // Swap axis depending on element rotation
+                if (rotationOffset % 2 == 0)
+                {
+                    xGrid = (int)index.x + i;
+                    yGrid = (int)index.y + j;
+                }
+                else
+                {
+                    xGrid = (int)index.x + j;
+                    yGrid = (int)index.y + i;
+                }
+
+                if (xGrid >= xSize || yGrid >= ySize) return false;
+                if (tiles[xGrid][yGrid] != null) return false;
+            }
+        }
+
+        return true;
+    }
+
+    private Vector2 GetElementPivotGridPosition(GridElement gridElement)
+    {
+        // Calculate the element's pivot's position on grid
+        Vector3 elementPivotRelativePosition = gridElement.Pivot.position - pivot.position;
+        Vector2 elementPivotGridPosition = new Vector3(Mathf.Round(elementPivotRelativePosition.x / tileSize), Mathf.Round(elementPivotRelativePosition.z / tileSize));
+
+        // Adjust offset caused by rotation
+        int rotationOffset = Mathf.RoundToInt(gridElement.transform.rotation.eulerAngles.y / 90);
+        switch (rotationOffset)
+        {
+            case 1:
+                return new Vector2(elementPivotGridPosition.x, elementPivotGridPosition.y - gridElement.GridSize.x);
+
+            case 2:
+                return new Vector2(elementPivotGridPosition.x - gridElement.GridSize.x, elementPivotGridPosition.y - gridElement.GridSize.y);
+
+            case 3:
+                return new Vector2(elementPivotGridPosition.x - gridElement.GridSize.y, elementPivotGridPosition.y);
+
+            case -1:
+                return new Vector2(elementPivotGridPosition.x, elementPivotGridPosition.y + gridElement.GridSize.x);
+
+            case -2:
+                return new Vector2(elementPivotGridPosition.x + gridElement.GridSize.x, elementPivotGridPosition.y + gridElement.GridSize.y);
+
+            case -3:
+                return new Vector2(elementPivotGridPosition.x + gridElement.GridSize.y, elementPivotGridPosition.y);
+        }
+
+        return elementPivotGridPosition;
     }
 }
