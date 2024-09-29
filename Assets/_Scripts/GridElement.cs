@@ -1,68 +1,152 @@
-using System.Collections;
-using System.Collections.Generic;
+using Meta.WitAi;
+using Oculus.Interaction;
+using Oculus.Interaction.HandGrab;
+using System;
 using UnityEngine;
 
 public class GridElement : MonoBehaviour
 {
     // Constants
     private const float RayLength = 1;
+    private const float GridDistanceTolerance = 0.03f;
 
     // Properties
     public Transform Pivot { get => pivot; }
     public Vector2 GridSize { get => gridSize; }
 
     //Private variables
-    [SerializeField] private MeshRenderer gridMeshRenderer;
+    [SerializeField] private Transform preview;
     [SerializeField] private Transform pivot;
     [SerializeField] private LayerMask gridLayerMask;
     [SerializeField] private Vector2 gridSize;
 
-    private bool isGrabbed;
+    private GrabInteractable grabInteractable;
+    private HandGrabInteractable handGrabInteractable;
+    private Vector3 lastGridPosition;
+    private bool grabbedOneHand;
+    private bool grabbedTwoHand;
+    private bool isInsideGrid;
+    private float mainGridHeight;
+    private MeshRenderer[] previewMeshRenderers;
 
     private void Start()
     {
-        // FOR DEBUG PURPOSES
-        isGrabbed = true;
+        grabInteractable = GetComponentInParent<GrabInteractable>();
+        handGrabInteractable = GetComponentInParent<HandGrabInteractable>();
+        previewMeshRenderers = preview.GetComponentsInChildren<MeshRenderer>();
+
+        // Register grab events
+        grabInteractable.WhenSelectingInteractorViewAdded += AddInteractor;
+        grabInteractable.WhenSelectingInteractorViewRemoved += RemoveInteractor;
+        handGrabInteractable.WhenSelectingInteractorViewAdded += AddInteractor;
+        handGrabInteractable.WhenSelectingInteractorViewRemoved += RemoveInteractor;
+        
+        preview.parent = null;
     }
 
     private void Update()
     {
-        if (!isGrabbed) return;
+        if (!grabbedOneHand) return;
+        if (!IsInsideGrid()) return;
 
-        SnapToGrid();
-
+        UpdatePreview();
     }
 
-    private void SnapToGrid()
+    private void AddInteractor(IInteractorView view)
     {
-        RaycastHit hit;
-        Ray ray = new Ray(transform.position, -transform.up);
+        OnGrab();
+    }
+    private void RemoveInteractor(IInteractorView view)
+    {
+        OnRelease();
+    }
 
-        if (!Physics.Raycast(ray, out hit, RayLength, gridLayerMask))
+    private void OnGrab()
+    {
+        if (grabbedOneHand)
         {
-            gridMeshRenderer.enabled = false;
-            return;
+            grabbedTwoHand = true;
         }
+        else
+        {
+            grabbedOneHand = true;
+        }
+    }
 
-        gridMeshRenderer.enabled = true;
-        gridMeshRenderer.transform.position = new Vector3(transform.position.x, hit.transform.position.y, transform.position.z);
+    private void OnRelease()
+    {
+        if (!grabbedTwoHand)
+        {
+            grabbedOneHand = false;
+        }
+        else
+        {
+            // Update rotation to fit a 90 degrees interval
+            Vector3 newRotation = new Vector3(0, Mathf.Round(transform.parent.eulerAngles.y / 90.0f) * 90.0f, 0);
+            transform.parent.eulerAngles = newRotation;
+            grabbedTwoHand = false;
+        }
+    }
+
+    private void UpdatePreview()
+    {           
+        // Update preview visuals
+        if (Grid.Instance.CheckTilesAvailability(this))
+        {
+            foreach (MeshRenderer meshRenderer in previewMeshRenderers)
+            {
+                meshRenderer.materials[0].color = Color.blue;
+            }
+        }
+        else
+        {
+            foreach (MeshRenderer meshRenderer in previewMeshRenderers)
+            {
+                meshRenderer.materials[0].color = Color.red;
+            }
+        }
 
         // Calculate pivot desired location within the grid
         Vector3 pivotRelativePositionToGrid = pivot.position - Grid.Instance.Pivot.position;
         Vector3 pivotGridPosition = new Vector3(Mathf.Round(pivotRelativePositionToGrid.x / Grid.Instance.tileSize), 0, Mathf.Round(pivotRelativePositionToGrid.z / Grid.Instance.tileSize));
         Vector3 pivotTargetPosition = pivotGridPosition * Grid.Instance.tileSize + pivot.position - pivotRelativePositionToGrid;
 
-        // Calculate and set element's new position
+        // Calculate grid new position
         Vector3 finalPosition = transform.position + pivotTargetPosition - pivot.position;
-        transform.position = new Vector3(finalPosition.x, transform.position.y, finalPosition.z);
+        if (Vector3.Distance(lastGridPosition, finalPosition) >= GridDistanceTolerance)
+            lastGridPosition = finalPosition;
 
-        if ((Grid.Instance.CheckTilesAvailability(this)))
+        // Update preview position
+        preview.position = new Vector3(lastGridPosition.x, mainGridHeight, lastGridPosition.z);
+
+        // Update preview rotation to fit a 90 degrees interval
+        if (grabbedTwoHand)
         {
-            gridMeshRenderer.materials[0].color = Color.blue;
+            Vector3 newRotation = new Vector3(0, Mathf.Round(transform.parent.eulerAngles.y / 90.0f) * 90.0f, 0);
+            preview.eulerAngles = newRotation;
         }
-        else
+    }
+
+    private bool IsInsideGrid()
+    {
+        RaycastHit hit;
+        Ray ray = new Ray(transform.position, -transform.up);
+
+        // Left grid
+        if (!Physics.Raycast(ray, out hit, RayLength, gridLayerMask))
         {
-            gridMeshRenderer.materials[0].color = Color.red;
+            preview.gameObject.SetActive(false);
+            isInsideGrid = false;
+            return false;
         }
+        // Entered grid
+        else if (!isInsideGrid)
+        {
+            mainGridHeight = hit.transform.position.y;
+            isInsideGrid = true;
+            preview.gameObject.SetActive(true);
+        }
+
+        return true;
     }
 }
