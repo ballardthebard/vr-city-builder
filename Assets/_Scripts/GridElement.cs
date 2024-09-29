@@ -41,16 +41,15 @@ public class GridElement : MonoBehaviour
         grabInteractable.WhenSelectingInteractorViewRemoved += RemoveInteractor;
         handGrabInteractable.WhenSelectingInteractorViewAdded += AddInteractor;
         handGrabInteractable.WhenSelectingInteractorViewRemoved += RemoveInteractor;
-        
-        preview.parent = null;
     }
 
     private void Update()
     {
         if (!grabbedOneHand) return;
-        if (!IsInsideGrid()) return;
+        UpdatePreviewRotation();
 
-        UpdatePreview();
+        if (!IsInsideGrid()) return;
+        UpdatePreviewPositionAndVisuals();
     }
 
     private void AddInteractor(IInteractorView view)
@@ -70,6 +69,12 @@ public class GridElement : MonoBehaviour
         }
         else
         {
+            if (transform.parent.parent != null)
+                transform.parent.parent = null;
+
+            if (preview.parent != null)
+                preview.parent = null;
+
             grabbedOneHand = true;
 
             if (!isPlaced) return;
@@ -87,11 +92,12 @@ public class GridElement : MonoBehaviour
 
             if (!IsInsideGrid())
             {
+                //NEED TO DESTROY IT LATER
                 gameObject.SetActive(false);
-                return; 
+                return;
             }
 
-            if (!Grid.Instance.CheckTilesAvailability(this)) 
+            if (!Grid.Instance.CheckTilesAvailability(this))
             {
                 preview.gameObject.SetActive(false);
                 return;
@@ -109,8 +115,18 @@ public class GridElement : MonoBehaviour
         }
     }
 
-    private void UpdatePreview()
-    {           
+    private void UpdatePreviewRotation() 
+    {
+        // Update preview rotation to fit a 90 degrees interval
+        if (grabbedTwoHand)
+        {
+            Vector3 newRotation = new Vector3(0, Mathf.Round(transform.parent.eulerAngles.y / 90.0f) * 90.0f, 0);
+            preview.eulerAngles = newRotation;
+        }
+    }
+
+    private void UpdatePreviewPositionAndVisuals()
+    {
         // Update preview visuals
         if (Grid.Instance.CheckTilesAvailability(this))
         {
@@ -139,13 +155,6 @@ public class GridElement : MonoBehaviour
 
         // Update preview position
         preview.position = new Vector3(lastGridPosition.x, mainGridHeight, lastGridPosition.z);
-
-        // Update preview rotation to fit a 90 degrees interval
-        if (grabbedTwoHand)
-        {
-            Vector3 newRotation = new Vector3(0, Mathf.Round(transform.parent.eulerAngles.y / 90.0f) * 90.0f, 0);
-            preview.eulerAngles = newRotation;
-        }
     }
 
     private bool IsInsideGrid()
@@ -166,6 +175,7 @@ public class GridElement : MonoBehaviour
             mainGridHeight = hit.collider.transform.position.y;
             isInsideGrid = true;
             preview.gameObject.SetActive(true);
+
         }
 
         return true;
