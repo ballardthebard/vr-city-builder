@@ -37,9 +37,37 @@ public class Grid : MonoBehaviour
         }
     }
 
-    public void UpdateTile(int xGrid, int yGrid, GridElement gridElement = null)
+    public void UpdateTile(bool isPlacing, GridElement gridElement)
     {
-        tiles[xGrid][yGrid] = gridElement;
+        Vector2 index = GetElementPivotGridPosition(gridElement);
+        int rotationOffset = Mathf.RoundToInt(gridElement.transform.rotation.eulerAngles.y / 90);
+
+        int xGrid;
+        int yGrid;
+
+        // Only update tiles the element is hoovering
+        for (int i = 0; i < gridElement.GridSize.x; i++)
+        {
+            for (int j = 0; j < gridElement.GridSize.y; j++)
+            {
+                // Swap axis depending on element rotation
+                if (rotationOffset % 2 == 0)
+                {
+                    xGrid = (int)index.x + i;
+                    yGrid = (int)index.y + j;
+                }
+                else
+                {
+                    xGrid = (int)index.x + j;
+                    yGrid = (int)index.y + i;
+                }
+
+               if(isPlacing)
+                    tiles[xGrid][yGrid] = gridElement;
+               else
+                    tiles[xGrid][yGrid] = null;
+            }
+        }
     }
 
     public bool CheckTilesAvailability(GridElement gridElement)
@@ -77,7 +105,7 @@ public class Grid : MonoBehaviour
         return true;
     }
 
-    private Vector2 GetElementPivotGridPosition(GridElement gridElement)
+    public Vector2 GetElementPivotGridPosition(GridElement gridElement)
     {
         // Calculate the element's pivot's position on grid
         Vector3 elementPivotRelativePosition = gridElement.Pivot.position - pivot.position;

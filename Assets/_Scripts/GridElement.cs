@@ -26,6 +26,7 @@ public class GridElement : MonoBehaviour
     private bool grabbedOneHand;
     private bool grabbedTwoHand;
     private bool isInsideGrid;
+    private bool isPlaced;
     private float mainGridHeight;
     private MeshRenderer[] previewMeshRenderers;
 
@@ -70,6 +71,11 @@ public class GridElement : MonoBehaviour
         else
         {
             grabbedOneHand = true;
+
+            if (!isPlaced) return;
+
+            Grid.Instance.UpdateTile(false, this);
+            isPlaced = false;
         }
     }
 
@@ -78,6 +84,21 @@ public class GridElement : MonoBehaviour
         if (!grabbedTwoHand)
         {
             grabbedOneHand = false;
+
+            if (!IsInsideGrid())
+            {
+                gameObject.SetActive(false);
+                return; 
+            }
+
+            if (!Grid.Instance.CheckTilesAvailability(this)) 
+            {
+                preview.gameObject.SetActive(false);
+                return;
+            }
+
+            Grid.Instance.UpdateTile(true, this);
+            isPlaced = true;
         }
         else
         {
@@ -142,7 +163,7 @@ public class GridElement : MonoBehaviour
         // Entered grid
         else if (!isInsideGrid)
         {
-            mainGridHeight = hit.transform.position.y;
+            mainGridHeight = hit.collider.transform.position.y;
             isInsideGrid = true;
             preview.gameObject.SetActive(true);
         }
