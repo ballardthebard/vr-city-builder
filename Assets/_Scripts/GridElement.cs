@@ -28,6 +28,7 @@ public class GridElement : MonoBehaviour
     [SerializeField] private Vector2 gridSize;
 
     [Header("Feedback")]
+    [SerializeField] private GameObject element;
     [SerializeField] private Transform previewAnimation;
     [SerializeField] private RectTransform canvas;
     [SerializeField] private Vector3 canvasTargetPosition;
@@ -76,6 +77,13 @@ public class GridElement : MonoBehaviour
 
         if (!IsInsideGrid()) return;
         UpdatePreviewPositionAndVisuals();
+    }
+
+    public void ToggleChilds() 
+    {
+        previewAnimation.gameObject.SetActive(!previewAnimation.gameObject.activeSelf);
+        element.SetActive(!element.activeSelf);
+        canvas.gameObject.SetActive(!canvas.gameObject.activeSelf);
     }
 
     private void UpdatePreviewRotation()
@@ -150,7 +158,6 @@ public class GridElement : MonoBehaviour
     {
         if (!Grid.Instance.CheckTilesAvailability(this))
         {
-            // Destroy game object
             DestroyElement();
             return;
         }
@@ -183,10 +190,12 @@ public class GridElement : MonoBehaviour
                 transform.parent = null;
 
             // Unparent preview so that it isn't directly affected by grab
+            // and reset any rotation caused by moving the UI
             if (preview.parent != null)
             {
                 preview.parent = null;
                 preview.rotation = Quaternion.identity;
+                transform.rotation = Quaternion.identity;
             }
 
             grabbedOneHand = true;
@@ -197,6 +206,11 @@ public class GridElement : MonoBehaviour
             Grid.Instance.UpdateTile(false, this);
             animator.SetBool("Placed", false);
             isPlaced = false;
+
+            // Reset preview and canvas
+            canvas.localPosition = Vector3.zero;
+            preview.localScale = Vector3.one;
+            ToggleChilds();
         }
     }
 
@@ -219,7 +233,9 @@ public class GridElement : MonoBehaviour
 
     private IEnumerator PlacedFeedback()
     {
-        yield return new WaitForEndOfFrame();
+        WaitForEndOfFrame waitForEndOfFrame = new WaitForEndOfFrame();
+
+        yield return waitForEndOfFrame;
 
         Vector3 canvasOriginalLocalPosition = canvas.position;
 
@@ -230,6 +246,8 @@ public class GridElement : MonoBehaviour
 
         animator.SetBool("Repositioning", true);
 
+        yield return waitForEndOfFrame;
+
         while (Vector3.Distance(canvas.localPosition, canvasTargetPosition) > CanvasDistanceThreshold)
         {
             canvas.localPosition = Vector3.Lerp(canvas.localPosition, canvasTargetPosition, CanvasSpeed * Time.deltaTime);
@@ -237,6 +255,5 @@ public class GridElement : MonoBehaviour
         }
 
         animator.SetBool("Repositioning", false);
-        animator.SetBool("Placed", true);
     }
 }
