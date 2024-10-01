@@ -1,7 +1,7 @@
-using Meta.WitAi;
 using Oculus.Interaction;
 using Oculus.Interaction.HandGrab;
-using System;
+using System.Collections;
+using TMPro;
 using UnityEngine;
 
 public class GridElement : MonoBehaviour
@@ -9,17 +9,30 @@ public class GridElement : MonoBehaviour
     // Constants
     private const float RayLength = 1;
     private const float GridDistanceTolerance = 0.03f;
+    private const float CanvasSpeed = 3f;
+    private const float CanvasDistanceThreshold = 0.1f;
 
     // Properties
     public Transform Pivot { get => pivot; }
     public Vector2 GridSize { get => gridSize; }
 
     //Private variables
+    [Header("Preview")]
+    [SerializeField] private Color allowedPlacement;
+    [SerializeField] private Color disallowedPlacement;
     [SerializeField] private Transform preview;
+
+    [Header("Grid Verification")]
     [SerializeField] private Transform pivot;
     [SerializeField] private LayerMask gridLayerMask;
     [SerializeField] private Vector2 gridSize;
 
+    [Header("Feedback")]
+    [SerializeField] private Transform previewAnimation;
+    [SerializeField] private RectTransform canvas;
+    [SerializeField] private Vector3 canvasTargetPosition;
+
+    private Animator animator;
     private GrabInteractable grabInteractable;
     private HandGrabInteractable handGrabInteractable;
     private Vector3 lastGridPosition;
@@ -30,17 +43,30 @@ public class GridElement : MonoBehaviour
     private float mainGridHeight;
     private MeshRenderer[] previewMeshRenderers;
 
-    private void Start()
+    private void Awake()
     {
-        grabInteractable = GetComponentInParent<GrabInteractable>();
-        handGrabInteractable = GetComponentInParent<HandGrabInteractable>();
+        animator = GetComponent<Animator>();
+        grabInteractable = GetComponent<GrabInteractable>();
+        handGrabInteractable = GetComponent<HandGrabInteractable>();
         previewMeshRenderers = preview.GetComponentsInChildren<MeshRenderer>();
+    }
 
+    private void OnEnable()
+    {
         // Register grab events
-        grabInteractable.WhenSelectingInteractorViewAdded += AddInteractor;
-        grabInteractable.WhenSelectingInteractorViewRemoved += RemoveInteractor;
-        handGrabInteractable.WhenSelectingInteractorViewAdded += AddInteractor;
-        handGrabInteractable.WhenSelectingInteractorViewRemoved += RemoveInteractor;
+        grabInteractable.WhenSelectingInteractorViewAdded += OnGrab;
+        grabInteractable.WhenSelectingInteractorViewRemoved += OnRelease;
+        handGrabInteractable.WhenSelectingInteractorViewAdded += OnGrab;
+        handGrabInteractable.WhenSelectingInteractorViewRemoved += OnRelease;
+    }
+
+    private void OnDisable()
+    {
+        // Unregister grab events
+        grabInteractable.WhenSelectingInteractorViewAdded -= OnGrab;
+        grabInteractable.WhenSelectingInteractorViewRemoved -= OnRelease;
+        handGrabInteractable.WhenSelectingInteractorViewAdded -= OnGrab;
+        handGrabInteractable.WhenSelectingInteractorViewRemoved -= OnRelease;
     }
 
     private void Update()
@@ -52,75 +78,12 @@ public class GridElement : MonoBehaviour
         UpdatePreviewPositionAndVisuals();
     }
 
-    private void AddInteractor(IInteractorView view)
-    {
-        OnGrab();
-    }
-    private void RemoveInteractor(IInteractorView view)
-    {
-        OnRelease();
-    }
-
-    private void OnGrab()
-    {
-        if (grabbedOneHand)
-        {
-            grabbedTwoHand = true;
-        }
-        else
-        {
-            if (transform.parent.parent != null)
-                transform.parent.parent = null;
-
-            if (preview.parent != null)
-                preview.parent = null;
-
-            grabbedOneHand = true;
-
-            if (!isPlaced) return;
-
-            Grid.Instance.UpdateTile(false, this);
-            isPlaced = false;
-        }
-    }
-
-    private void OnRelease()
-    {
-        if (!grabbedTwoHand)
-        {
-            grabbedOneHand = false;
-
-            if (!IsInsideGrid())
-            {
-                //NEED TO DESTROY IT LATER
-                gameObject.SetActive(false);
-                return;
-            }
-
-            if (!Grid.Instance.CheckTilesAvailability(this))
-            {
-                preview.gameObject.SetActive(false);
-                return;
-            }
-
-            Grid.Instance.UpdateTile(true, this);
-            isPlaced = true;
-        }
-        else
-        {
-            // Update rotation to fit a 90 degrees interval
-            Vector3 newRotation = new Vector3(0, Mathf.Round(transform.parent.eulerAngles.y / 90.0f) * 90.0f, 0);
-            transform.parent.eulerAngles = newRotation;
-            grabbedTwoHand = false;
-        }
-    }
-
-    private void UpdatePreviewRotation() 
+    private void UpdatePreviewRotation()
     {
         // Update preview rotation to fit a 90 degrees interval
         if (grabbedTwoHand)
         {
-            Vector3 newRotation = new Vector3(0, Mathf.Round(transform.parent.eulerAngles.y / 90.0f) * 90.0f, 0);
+            Vector3 newRotation = new Vector3(0, Mathf.Round(transform.eulerAngles.y / 90.0f) * 90.0f, 0);
             preview.eulerAngles = newRotation;
         }
     }
@@ -132,14 +95,14 @@ public class GridElement : MonoBehaviour
         {
             foreach (MeshRenderer meshRenderer in previewMeshRenderers)
             {
-                meshRenderer.materials[0].color = Color.blue;
+                meshRenderer.materials[0].color = allowedPlacement;
             }
         }
         else
         {
             foreach (MeshRenderer meshRenderer in previewMeshRenderers)
             {
-                meshRenderer.materials[0].color = Color.red;
+                meshRenderer.materials[0].color = disallowedPlacement;
             }
         }
 
@@ -165,6 +128,7 @@ public class GridElement : MonoBehaviour
         // Left grid
         if (!Physics.Raycast(ray, out hit, RayLength, gridLayerMask))
         {
+            print("Left Grid");
             preview.gameObject.SetActive(false);
             isInsideGrid = false;
             return false;
@@ -172,6 +136,7 @@ public class GridElement : MonoBehaviour
         // Entered grid
         else if (!isInsideGrid)
         {
+            print("Entered Grid");
             mainGridHeight = hit.collider.transform.position.y;
             isInsideGrid = true;
             preview.gameObject.SetActive(true);
@@ -179,5 +144,99 @@ public class GridElement : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void PlaceOnGrid()
+    {
+        if (!Grid.Instance.CheckTilesAvailability(this))
+        {
+            // Destroy game object
+            DestroyElement();
+            return;
+        }
+
+        // Place element on grid
+        StartCoroutine(PlacedFeedback());
+        Grid.Instance.UpdateTile(true, this);
+        isPlaced = true;
+    }
+
+
+    private void DestroyElement()
+    {
+        transform.gameObject.SetActive(false);
+        Destroy(preview.gameObject);
+        Destroy(transform.gameObject);
+
+    }
+
+    private void OnGrab(IInteractorView view)
+    {
+        if (grabbedOneHand)
+        {
+            grabbedTwoHand = true;
+        }
+        else
+        {
+            // Remove grabbable from spawn point
+            if (transform.parent != null)
+                transform.parent = null;
+
+            // Unparent preview so that it isn't directly affected by grab
+            if (preview.parent != null)
+            {
+                preview.parent = null;
+                preview.rotation = Quaternion.identity;
+            }
+
+            grabbedOneHand = true;
+
+            if (!isPlaced) return;
+
+            // Remove element from grid
+            Grid.Instance.UpdateTile(false, this);
+            animator.SetBool("Placed", false);
+            isPlaced = false;
+        }
+    }
+
+    private void OnRelease(IInteractorView view)
+    {
+        if (!grabbedTwoHand)
+        {
+            grabbedOneHand = false;
+
+            PlaceOnGrid();
+        }
+        else
+        {
+            // Update rotation to fit a 90 degrees interval
+            Vector3 newRotation = new Vector3(0, Mathf.Round(transform.eulerAngles.y / 90.0f) * 90.0f, 0);
+            transform.eulerAngles = newRotation;
+            grabbedTwoHand = false;
+        }
+    }
+
+    private IEnumerator PlacedFeedback()
+    {
+        yield return new WaitForEndOfFrame();
+
+        Vector3 canvasOriginalLocalPosition = canvas.position;
+
+        transform.position = preview.position;
+        transform.rotation = preview.rotation;
+        canvas.position = canvasOriginalLocalPosition;
+        preview.parent = previewAnimation;
+
+        animator.SetBool("Repositioning", true);
+
+        while (Vector3.Distance(canvas.localPosition, canvasTargetPosition) > CanvasDistanceThreshold)
+        {
+            canvas.localPosition = Vector3.Lerp(canvas.localPosition, canvasTargetPosition, CanvasSpeed * Time.deltaTime);
+            yield return null;
+        }
+
+        animator.SetBool("Repositioning", false);
+        animator.SetBool("Placed", true);
     }
 }
