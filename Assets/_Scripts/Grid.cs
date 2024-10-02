@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -15,11 +16,21 @@ public class Grid : MonoBehaviour
     public Transform Pivot { get => pivot; }
 
     // Private variables
+    [SerializeField] private Transform initialLayout;
     [SerializeField] private Transform pivot;
     private GridElement[][] tiles;
 
     void Start()
     {
+        tiles = new GridElement[xSize][];
+        
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            tiles[i] = new GridElement[ySize];
+        }
+        
+        SetInitialLayout();
+        
         if (Instance == null)
         {
             Instance = this;
@@ -28,12 +39,6 @@ public class Grid : MonoBehaviour
         else
         {
             Destroy(this);
-        }
-
-        tiles = new GridElement[xSize][];
-        for (int i = 0; i < tiles.Length; i++)
-        {
-            tiles[i] = new GridElement[ySize];
         }
     }
 
@@ -62,9 +67,9 @@ public class Grid : MonoBehaviour
                     yGrid = (int)index.y + i;
                 }
 
-               if(isPlacing)
+                if (isPlacing)
                     tiles[xGrid][yGrid] = gridElement;
-               else
+                else
                     tiles[xGrid][yGrid] = null;
             }
         }
@@ -105,7 +110,18 @@ public class Grid : MonoBehaviour
         return true;
     }
 
-    public Vector2 GetElementPivotGridPosition(GridElement gridElement)
+    public Vector3 GetPositionInsideGrid(GridElement gridElement)
+    {
+        // Calculate pivot desired location within the grid
+        Vector3 pivotRelativePositionToGrid = gridElement.Pivot.position - pivot.position;
+        Vector3 pivotGridPosition = new Vector3(Mathf.Round(pivotRelativePositionToGrid.x / tileSize), pivot.position.y, Mathf.Round(pivotRelativePositionToGrid.z / tileSize));
+        Vector3 pivotTargetPosition = pivotGridPosition * tileSize + gridElement.Pivot.position - pivotRelativePositionToGrid;
+
+        // Return final world position 
+        return gridElement.transform.position + pivotTargetPosition - gridElement.Pivot.position;
+    }
+
+    private Vector2 GetElementPivotGridPosition(GridElement gridElement)
     {
         // Calculate the element's pivot's position on grid
         Vector3 elementPivotRelativePosition = gridElement.Pivot.position - pivot.position;
@@ -135,5 +151,23 @@ public class Grid : MonoBehaviour
         }
 
         return elementPivotGridPosition;
+    }
+
+    private void SetInitialLayout()
+    {
+        GridElement[] gridElements = initialLayout.GetComponentsInChildren<GridElement>();
+
+        foreach (GridElement gridElement in gridElements) 
+        {
+            Vector3 finalPosition = GetPositionInsideGrid(gridElement);
+            finalPosition.y = pivot.position.y;
+
+            gridElement.transform.parent = null;
+            gridElement.transform.position = finalPosition;
+            gridElement.ToggleChildren();
+            gridElement.Animator.SetTrigger("StartOnScene");
+            gridElement.isPlaced = true;
+            UpdateTile(true, gridElement);
+        }
     }
 }

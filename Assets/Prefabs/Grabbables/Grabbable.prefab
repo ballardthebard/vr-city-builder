@@ -794,8 +794,8 @@ MonoBehaviour:
   _slippiness: 0
   _supportedGrabTypes: 3
   _pinchGrabRules:
-    _thumbRequirement: 1
-    _indexRequirement: 1
+    _thumbRequirement: 2
+    _indexRequirement: 2
     _middleRequirement: 1
     _ringRequirement: 0
     _pinkyRequirement: 0
@@ -843,6 +843,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02f078c41a69e49439456e1f99719711, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isPlaced: 0
   allowedPlacement: {r: 0.8396226, g: 0.8396226, b: 0.8396226, a: 0.5882353}
   disallowedPlacement: {r: 1, g: 0, b: 0, a: 0.5882353}
   preview: {fileID: 3443777151302991413}

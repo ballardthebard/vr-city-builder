@@ -1,6 +1,5 @@
 using Oculus.Interaction;
 using Oculus.Interaction.HandGrab;
-using System;
 using System.Collections;
 using UnityEngine;
 
@@ -17,9 +16,12 @@ public class GridElement : MonoBehaviour
     private const string Repositioning = "Repositioning";
     private const string Grabbed = "Grabbed";
 
+    // Public variables
+    public bool isPlaced;
 
     // Properties
     public Transform Pivot { get => pivot; }
+    public Animator Animator { get => animator; }
     public Vector2 GridSize { get => gridSize; }
 
     //Private variables
@@ -50,7 +52,6 @@ public class GridElement : MonoBehaviour
     private bool grabbedOneHand;
     private bool grabbedTwoHand;
     private bool isInsideGrid;
-    private bool isPlaced;
     private bool isSquishing;
     private float mainGridHeight;
     private float initialPokeDistance;
@@ -104,6 +105,7 @@ public class GridElement : MonoBehaviour
         UpdatePreviewPositionAndVisuals();
     }
 
+
     public void ToggleChildren()
     {
         previewAnimation.gameObject.SetActive(!previewAnimation.gameObject.activeSelf);
@@ -140,13 +142,8 @@ public class GridElement : MonoBehaviour
             }
         }
 
-        // Calculate pivot desired location within the grid
-        Vector3 pivotRelativePositionToGrid = pivot.position - Grid.Instance.Pivot.position;
-        Vector3 pivotGridPosition = new Vector3(Mathf.Round(pivotRelativePositionToGrid.x / Grid.Instance.tileSize), 0, Mathf.Round(pivotRelativePositionToGrid.z / Grid.Instance.tileSize));
-        Vector3 pivotTargetPosition = pivotGridPosition * Grid.Instance.tileSize + pivot.position - pivotRelativePositionToGrid;
-
-        // Calculate grid new position
-        Vector3 finalPosition = transform.position + pivotTargetPosition - pivot.position;
+        // Get new world position
+        Vector3 finalPosition = Grid.Instance.GetPositionInsideGrid(this);
         if (Vector3.Distance(lastGridPosition, finalPosition) >= GridDistanceTolerance)
             lastGridPosition = finalPosition;
 
@@ -180,6 +177,16 @@ public class GridElement : MonoBehaviour
         return true;
     }
 
+    private void DestroyElement()
+    {
+        poofParticleSystem.transform.parent = null;
+        poofParticleSystem.Play();
+
+        Destroy(poofParticleSystem.gameObject, poofParticleSystem.startLifetime);
+        Destroy(preview.gameObject);
+        Destroy(transform.gameObject);
+    }
+
     private void PlaceOnGrid()
     {
         if (!Grid.Instance.CheckTilesAvailability(this))
@@ -192,17 +199,6 @@ public class GridElement : MonoBehaviour
         StartCoroutine(PlacedFeedback());
         Grid.Instance.UpdateTile(true, this);
         isPlaced = true;
-    }
-
-
-    private void DestroyElement()
-    {
-        poofParticleSystem.transform.parent = null;
-        poofParticleSystem.Play();
-
-        Destroy(poofParticleSystem.gameObject, poofParticleSystem.startLifetime);
-        Destroy(preview.gameObject);
-        Destroy(transform.gameObject);
     }
 
     private void OnGrab(IInteractorView view)

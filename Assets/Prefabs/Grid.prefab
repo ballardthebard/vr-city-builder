@@ -25,7 +25,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 338524115151211975}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1.171, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1005b1756a97d66448438515aa8e8276, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileSize: 0.1
+  tileSize: 0.03333334
   xSize: 30
   ySize: 30
   pivot: {fileID: 3864633469268894789}
@@ -62,7 +62,7 @@ GameObject:
   - component: {fileID: 5049907968088340658}
   - component: {fileID: 5160365255175067889}
   m_Layer: 0
-  m_Name: Grass
+  m_Name: Terrain
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -78,7 +78,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3.1, y: 0.1, z: 3.1}
+  m_LocalScale: {x: 1.1, y: 0.1, z: 1.1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 62050739197480939}
@@ -161,7 +161,7 @@ Transform:
   m_GameObject: {fileID: 4074600927901386815}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -1.71, z: 0}
+  m_LocalPosition: {x: 0, y: -1.75, z: 0}
   m_LocalScale: {x: 1, y: 2.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -225,6 +225,38 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2509628313402661437}
     m_Modifications:
+    - target: {fileID: 3108402199186159541, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      propertyPath: m_Size.x
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 3108402199186159541, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      propertyPath: m_Size.z
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 3282115228411027568, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3282115228411027568, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      propertyPath: m_ReceiveShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3282115228411027568, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      propertyPath: m_LightProbeUsage
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3282115228411027568, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      propertyPath: m_ReflectionProbeUsage
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6350421730782195053, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6350421730782195053, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.1
+      objectReference: {fileID: 0}
     - target: {fileID: 6350421730782195053, guid: a0c1dd1a294d6b84ba59f2efef90a8fc, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
