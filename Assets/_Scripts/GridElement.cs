@@ -34,6 +34,7 @@ public class GridElement : MonoBehaviour
     [SerializeField] private Vector2 gridSize;
 
     [Header("Feedback")]
+    [SerializeField] private ParticleSystem poofParticleSystem;
     [SerializeField] private Transform pokeButton;
     [SerializeField] private Transform pokeSurface;
     [SerializeField] private GameObject element;
@@ -77,6 +78,7 @@ public class GridElement : MonoBehaviour
         grabInteractable.WhenSelectingInteractorViewRemoved += OnRelease;
         handGrabInteractable.WhenSelectingInteractorViewAdded += OnGrab;
         handGrabInteractable.WhenSelectingInteractorViewRemoved += OnRelease;
+        pokeInteractable.WhenSelectingInteractorViewAdded += OnPokeSelect;
         pokeInteractable.WhenInteractorViewAdded += OnPokeStarted;
         pokeInteractable.WhenInteractorViewRemoved += OnPokeFinished;
     }
@@ -88,6 +90,7 @@ public class GridElement : MonoBehaviour
         grabInteractable.WhenSelectingInteractorViewRemoved -= OnRelease;
         handGrabInteractable.WhenSelectingInteractorViewAdded -= OnGrab;
         handGrabInteractable.WhenSelectingInteractorViewRemoved -= OnRelease;
+        pokeInteractable.WhenSelectingInteractorViewAdded -= OnPokeSelect;
         pokeInteractable.WhenInteractorViewAdded -= OnPokeStarted;
         pokeInteractable.WhenInteractorViewRemoved -= OnPokeFinished;
     }
@@ -194,6 +197,10 @@ public class GridElement : MonoBehaviour
 
     private void DestroyElement()
     {
+        poofParticleSystem.transform.parent = null;
+        poofParticleSystem.Play();
+
+        Destroy(poofParticleSystem.gameObject, poofParticleSystem.startLifetime);
         Destroy(preview.gameObject);
         Destroy(transform.gameObject);
     }
@@ -253,6 +260,13 @@ public class GridElement : MonoBehaviour
         }
     }
 
+    private void OnPokeSelect(IInteractorView view)
+    {
+        // Remove element from grid
+        Grid.Instance.UpdateTile(false, this);
+        DestroyElement();
+    }
+
     private void OnPokeStarted(IInteractorView view)
     {
         isSquishing = true;
@@ -304,7 +318,7 @@ public class GridElement : MonoBehaviour
             // Calculate the remaining distance and  normalize the value between 0 and 1
             float remainingDistance = Mathf.Abs(pokeSurface.localPosition.z - pokeButton.localPosition.z);
             float normalizedValue = Mathf.Clamp01(1 - (remainingDistance / initialPokeDistance));
-            
+
             print("Pressed: " + normalizedValue);
 
             // Update the animator float parameter
