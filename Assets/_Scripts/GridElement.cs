@@ -1,7 +1,7 @@
 using Oculus.Interaction;
 using Oculus.Interaction.HandGrab;
+using System;
 using System.Collections;
-using TMPro;
 using UnityEngine;
 
 public class GridElement : MonoBehaviour
@@ -11,6 +11,12 @@ public class GridElement : MonoBehaviour
     private const float GridDistanceTolerance = 0.03f;
     private const float CanvasSpeed = 3f;
     private const float CanvasDistanceThreshold = 0.1f;
+
+    //Animator Constants
+    private const string Pressed = "Pressed";
+    private const string Repositioning = "Repositioning";
+    private const string Grabbed = "Grabbed";
+
 
     // Properties
     public Transform Pivot { get => pivot; }
@@ -28,6 +34,8 @@ public class GridElement : MonoBehaviour
     [SerializeField] private Vector2 gridSize;
 
     [Header("Feedback")]
+    [SerializeField] private Transform pokeButton;
+    [SerializeField] private Transform pokeSurface;
     [SerializeField] private GameObject element;
     [SerializeField] private Transform previewAnimation;
     [SerializeField] private RectTransform canvas;
@@ -36,12 +44,15 @@ public class GridElement : MonoBehaviour
     private Animator animator;
     private GrabInteractable grabInteractable;
     private HandGrabInteractable handGrabInteractable;
+    private PokeInteractable pokeInteractable;
     private Vector3 lastGridPosition;
     private bool grabbedOneHand;
     private bool grabbedTwoHand;
     private bool isInsideGrid;
     private bool isPlaced;
+    private bool isSquishing;
     private float mainGridHeight;
+    private float initialPokeDistance;
     private MeshRenderer[] previewMeshRenderers;
 
     private void Awake()
@@ -50,6 +61,13 @@ public class GridElement : MonoBehaviour
         grabInteractable = GetComponent<GrabInteractable>();
         handGrabInteractable = GetComponent<HandGrabInteractable>();
         previewMeshRenderers = preview.GetComponentsInChildren<MeshRenderer>();
+        pokeInteractable = GetComponentInChildren<PokeInteractable>();
+    }
+
+    private void Start()
+    {
+        initialPokeDistance = Mathf.Abs(pokeSurface.localPosition.z - pokeButton.localPosition.z);
+        pokeInteractable.gameObject.SetActive(false);
     }
 
     private void OnEnable()
@@ -59,6 +77,8 @@ public class GridElement : MonoBehaviour
         grabInteractable.WhenSelectingInteractorViewRemoved += OnRelease;
         handGrabInteractable.WhenSelectingInteractorViewAdded += OnGrab;
         handGrabInteractable.WhenSelectingInteractorViewRemoved += OnRelease;
+        pokeInteractable.WhenInteractorViewAdded += OnPokeStarted;
+        pokeInteractable.WhenInteractorViewRemoved += OnPokeFinished;
     }
 
     private void OnDisable()
@@ -68,6 +88,8 @@ public class GridElement : MonoBehaviour
         grabInteractable.WhenSelectingInteractorViewRemoved -= OnRelease;
         handGrabInteractable.WhenSelectingInteractorViewAdded -= OnGrab;
         handGrabInteractable.WhenSelectingInteractorViewRemoved -= OnRelease;
+        pokeInteractable.WhenInteractorViewAdded -= OnPokeStarted;
+        pokeInteractable.WhenInteractorViewRemoved -= OnPokeFinished;
     }
 
     private void Update()
@@ -79,11 +101,12 @@ public class GridElement : MonoBehaviour
         UpdatePreviewPositionAndVisuals();
     }
 
-    public void ToggleChilds() 
+    public void ToggleChildren()
     {
         previewAnimation.gameObject.SetActive(!previewAnimation.gameObject.activeSelf);
         element.SetActive(!element.activeSelf);
         canvas.gameObject.SetActive(!canvas.gameObject.activeSelf);
+        pokeInteractable.gameObject.SetActive(!pokeInteractable.gameObject.activeSelf);
     }
 
     private void UpdatePreviewRotation()
@@ -171,10 +194,8 @@ public class GridElement : MonoBehaviour
 
     private void DestroyElement()
     {
-        transform.gameObject.SetActive(false);
         Destroy(preview.gameObject);
         Destroy(transform.gameObject);
-
     }
 
     private void OnGrab(IInteractorView view)
@@ -204,13 +225,13 @@ public class GridElement : MonoBehaviour
 
             // Remove element from grid
             Grid.Instance.UpdateTile(false, this);
-            animator.SetBool("Placed", false);
             isPlaced = false;
 
             // Reset preview and canvas
+            animator.SetBool(Grabbed, true);
             canvas.localPosition = Vector3.zero;
             preview.localScale = Vector3.one;
-            ToggleChilds();
+            ToggleChildren();
         }
     }
 
@@ -219,6 +240,7 @@ public class GridElement : MonoBehaviour
         if (!grabbedTwoHand)
         {
             grabbedOneHand = false;
+            animator.SetBool(Grabbed, false);
 
             PlaceOnGrid();
         }
@@ -231,29 +253,66 @@ public class GridElement : MonoBehaviour
         }
     }
 
+    private void OnPokeStarted(IInteractorView view)
+    {
+        isSquishing = true;
+        StartCoroutine(SquishElement());
+    }
+
+    private void OnPokeFinished(IInteractorView view)
+    {
+        isSquishing = false;
+    }
+
     private IEnumerator PlacedFeedback()
     {
         WaitForEndOfFrame waitForEndOfFrame = new WaitForEndOfFrame();
 
+        // Wait until motion controllers are no longer affecting position
         yield return waitForEndOfFrame;
 
         Vector3 canvasOriginalLocalPosition = canvas.position;
 
+        // Reset transform to correct position within the grid
         transform.position = preview.position;
         transform.rotation = preview.rotation;
+
+        // Reset canvas position to prevent teleport
         canvas.position = canvasOriginalLocalPosition;
+
+        // Re-parent preview to include it on animation
         preview.parent = previewAnimation;
 
-        animator.SetBool("Repositioning", true);
-
+        // Call the animation and wait to make sure it triggers
+        animator.SetBool(Repositioning, true);
         yield return waitForEndOfFrame;
 
+        // Reposition canvas to align it correctly with the animation and avoid teleport
         while (Vector3.Distance(canvas.localPosition, canvasTargetPosition) > CanvasDistanceThreshold)
         {
             canvas.localPosition = Vector3.Lerp(canvas.localPosition, canvasTargetPosition, CanvasSpeed * Time.deltaTime);
             yield return null;
         }
 
-        animator.SetBool("Repositioning", false);
+        animator.SetBool(Repositioning, false);
+    }
+
+    private IEnumerator SquishElement()
+    {
+        while (isSquishing)
+        {
+            // Calculate the remaining distance and  normalize the value between 0 and 1
+            float remainingDistance = Mathf.Abs(pokeSurface.localPosition.z - pokeButton.localPosition.z);
+            float normalizedValue = Mathf.Clamp01(1 - (remainingDistance / initialPokeDistance));
+            
+            print("Pressed: " + normalizedValue);
+
+            // Update the animator float parameter
+            animator.SetFloat(Pressed, normalizedValue);
+
+            yield return null;
+        }
+
+        animator.SetFloat(Pressed, 0f);
     }
 }
