@@ -56,19 +56,21 @@ public class GridElement : MonoBehaviour
     private float mainGridHeight;
     private float initialPokeDistance;
     private MeshRenderer[] previewMeshRenderers;
+    private WaitForEndOfFrame waitForEndOfFrame;
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
         grabInteractable = GetComponent<GrabInteractable>();
         handGrabInteractable = GetComponent<HandGrabInteractable>();
-        previewMeshRenderers = preview.GetComponentsInChildren<MeshRenderer>();
         pokeInteractable = GetComponentInChildren<PokeInteractable>();
+        previewMeshRenderers = preview.GetComponentsInChildren<MeshRenderer>();
     }
 
     private void Start()
     {
         initialPokeDistance = Mathf.Abs(pokeSurface.localPosition.z - pokeButton.localPosition.z);
+        waitForEndOfFrame = new WaitForEndOfFrame();
     }
 
     private void OnEnable()
@@ -78,6 +80,7 @@ public class GridElement : MonoBehaviour
         grabInteractable.WhenSelectingInteractorViewRemoved += OnRelease;
         handGrabInteractable.WhenSelectingInteractorViewAdded += OnGrab;
         handGrabInteractable.WhenSelectingInteractorViewRemoved += OnRelease;
+
         pokeInteractable.WhenSelectingInteractorViewAdded += OnPokeSelect;
         pokeInteractable.WhenInteractorViewAdded += OnPokeStarted;
         pokeInteractable.WhenInteractorViewRemoved += OnPokeFinished;
@@ -90,6 +93,7 @@ public class GridElement : MonoBehaviour
         grabInteractable.WhenSelectingInteractorViewRemoved -= OnRelease;
         handGrabInteractable.WhenSelectingInteractorViewAdded -= OnGrab;
         handGrabInteractable.WhenSelectingInteractorViewRemoved -= OnRelease;
+
         pokeInteractable.WhenSelectingInteractorViewAdded -= OnPokeSelect;
         pokeInteractable.WhenInteractorViewAdded -= OnPokeStarted;
         pokeInteractable.WhenInteractorViewRemoved -= OnPokeFinished;
@@ -156,7 +160,6 @@ public class GridElement : MonoBehaviour
         // Left grid
         if (!Physics.Raycast(ray, out hit, RayLength, gridLayerMask))
         {
-            print("Left Grid");
             preview.gameObject.SetActive(false);
             isInsideGrid = false;
             return false;
@@ -164,7 +167,6 @@ public class GridElement : MonoBehaviour
         // Entered grid
         else if (!isInsideGrid)
         {
-            print("Entered Grid");
             mainGridHeight = hit.collider.transform.position.y;
             isInsideGrid = true;
             preview.gameObject.SetActive(true);
@@ -273,8 +275,6 @@ public class GridElement : MonoBehaviour
 
     private IEnumerator PlacedFeedback()
     {
-        WaitForEndOfFrame waitForEndOfFrame = new WaitForEndOfFrame();
-
         // Wait until motion controllers are no longer affecting position
         yield return waitForEndOfFrame;
 
@@ -311,8 +311,6 @@ public class GridElement : MonoBehaviour
             // Calculate the remaining distance and  normalize the value between 0 and 1
             float remainingDistance = Mathf.Abs(pokeSurface.localPosition.z - pokeButton.localPosition.z);
             float normalizedValue = Mathf.Clamp01(1 - (remainingDistance / initialPokeDistance));
-
-            print("Pressed: " + normalizedValue);
 
             // Update the animator float parameter
             animator.SetFloat(Pressed, normalizedValue);
