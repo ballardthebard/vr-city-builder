@@ -69,7 +69,6 @@ public class GridElement : MonoBehaviour
     private void Start()
     {
         initialPokeDistance = Mathf.Abs(pokeSurface.localPosition.z - pokeButton.localPosition.z);
-        pokeInteractable.gameObject.SetActive(false);
     }
 
     private void OnEnable()
@@ -105,13 +104,11 @@ public class GridElement : MonoBehaviour
         UpdatePreviewPositionAndVisuals();
     }
 
-
     public void ToggleChildren()
     {
         previewAnimation.gameObject.SetActive(!previewAnimation.gameObject.activeSelf);
         element.SetActive(!element.activeSelf);
         canvas.gameObject.SetActive(!canvas.gameObject.activeSelf);
-        pokeInteractable.gameObject.SetActive(!pokeInteractable.gameObject.activeSelf);
     }
 
     private void UpdatePreviewRotation()
@@ -182,7 +179,7 @@ public class GridElement : MonoBehaviour
         poofParticleSystem.transform.parent = null;
         poofParticleSystem.Play();
 
-        Destroy(poofParticleSystem.gameObject, poofParticleSystem.startLifetime);
+        Destroy(poofParticleSystem.gameObject, poofParticleSystem.main.startLifetime.constant);
         Destroy(preview.gameObject);
         Destroy(transform.gameObject);
     }
