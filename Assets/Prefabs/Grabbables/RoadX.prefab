@@ -854,7 +854,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 50231934426767138, guid: 04c5312012ad38c4e848abad2d212267, type: 3}
       propertyPath: m_Name
-      value: RoadX Variant
+      value: RoadX
       objectReference: {fileID: 0}
     - target: {fileID: 50231934426767138, guid: 04c5312012ad38c4e848abad2d212267, type: 3}
       propertyPath: m_IsActive
