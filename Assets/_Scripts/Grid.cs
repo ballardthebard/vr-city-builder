@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class Grid : MonoBehaviour
 {
+    // Constants
+    private const int RotationStep = 90;
+
     // Static variables
     public static Grid Instance;
 
@@ -18,23 +21,14 @@ public class Grid : MonoBehaviour
     // Private variables
     [SerializeField] private Transform initialLayout;
     [SerializeField] private Transform pivot;
-    private GridElement[][] tiles;
+    private GridElement[,] tiles;
 
-    void Start()
+    private void Awake()
     {
-        tiles = new GridElement[xSize][];
-        
-        for (int i = 0; i < tiles.Length; i++)
-        {
-            tiles[i] = new GridElement[ySize];
-        }
-        
-        SetInitialLayout();
-        
+        // Initialize singleton
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(this);
         }
         else
         {
@@ -42,72 +36,48 @@ public class Grid : MonoBehaviour
         }
     }
 
+    void Start()
+    {
+        // Initialize tiles
+        tiles = new GridElement[xSize, ySize];
+
+        // Fill tiles with objects already on the layout
+        SetInitialLayout();
+        DontDestroyOnLoad(this);
+    }
+
     public void UpdateTile(bool isPlacing, GridElement gridElement)
     {
-        Vector2 index = GetElementPivotGridPosition(gridElement);
-        int rotationOffset = Mathf.RoundToInt(gridElement.transform.rotation.eulerAngles.y / 90);
-
-        int xGrid;
-        int yGrid;
-
-        // Only update tiles the element is hoovering
-        for (int i = 0; i < gridElement.GridSize.x; i++)
+        Action<int, int> updateAction = (xGrid, yGrid) =>
         {
-            for (int j = 0; j < gridElement.GridSize.y; j++)
-            {
-                // Swap axis depending on element rotation
-                if (rotationOffset % 2 == 0)
-                {
-                    xGrid = (int)index.x + i;
-                    yGrid = (int)index.y + j;
-                }
-                else
-                {
-                    xGrid = (int)index.x + j;
-                    yGrid = (int)index.y + i;
-                }
+            if (isPlacing)
+                tiles[xGrid, yGrid] = gridElement;
+            else
+                tiles[xGrid, yGrid] = null;
+        };
 
-                if (isPlacing)
-                    tiles[xGrid][yGrid] = gridElement;
-                else
-                    tiles[xGrid][yGrid] = null;
-            }
-        }
+        IterateGridTiles(gridElement, updateAction);
     }
 
     public bool CheckTilesAvailability(GridElement gridElement)
     {
-        Vector2 index = GetElementPivotGridPosition(gridElement);
-        int rotationOffset = Mathf.RoundToInt(gridElement.transform.rotation.eulerAngles.y / 90);
+        bool isAvailable = true;
 
-        if (index.x < 0 || index.y < 0) return false;
-
-        int xGrid;
-        int yGrid;
-
-        // Only check tiles the element is hoovering
-        for (int i = 0; i < gridElement.GridSize.x; i++)
+        Action<int, int> checkAction = (xGrid, yGrid) =>
         {
-            for (int j = 0; j < gridElement.GridSize.y; j++)
+            if (xGrid < 0 || yGrid < 0 || xGrid >= xSize || yGrid >= ySize)
             {
-                // Swap axis depending on element rotation
-                if (rotationOffset % 2 == 0)
-                {
-                    xGrid = (int)index.x + i;
-                    yGrid = (int)index.y + j;
-                }
-                else
-                {
-                    xGrid = (int)index.x + j;
-                    yGrid = (int)index.y + i;
-                }
-
-                if (xGrid >= xSize || yGrid >= ySize) return false;
-                if (tiles[xGrid][yGrid] != null) return false;
+                isAvailable = false;
             }
-        }
+            else if (tiles[xGrid, yGrid] != null)
+            {
+                isAvailable = false;
+            }
+        };
 
-        return true;
+        IterateGridTiles(gridElement, checkAction);
+
+        return isAvailable;
     }
 
     public Vector3 GetPositionInsideGrid(GridElement gridElement)
@@ -121,6 +91,39 @@ public class Grid : MonoBehaviour
         return gridElement.transform.position + pivotTargetPosition - gridElement.Pivot.position;
     }
 
+    private void IterateGridTiles(GridElement gridElement, Action<int, int> tileAction)
+    {
+        // Precompute rotationOffset and index values before the loop
+        Vector2 index = GetElementPivotGridPosition(gridElement);
+        int baseX = (int)index.x;
+        int baseY = (int)index.y;
+
+        int rotationOffset = GetRotationOffset(gridElement);
+        bool isEvenRotation = (rotationOffset % 2 == 0);
+
+        int xGrid;
+        int yGrid;
+
+        for (int i = 0; i < gridElement.GridSize.x; i++)
+        {
+            for (int j = 0; j < gridElement.GridSize.y; j++)
+            {
+                if (isEvenRotation)
+                {
+                    xGrid = baseX + i;
+                    yGrid = baseY + j;
+                }
+                else
+                {
+                    xGrid = baseX + j;
+                    yGrid = baseY + i;
+                }
+
+                tileAction(xGrid, yGrid);
+            }
+        }
+    }
+
     private Vector2 GetElementPivotGridPosition(GridElement gridElement)
     {
         // Calculate the element's pivot's position on grid
@@ -128,7 +131,7 @@ public class Grid : MonoBehaviour
         Vector2 elementPivotGridPosition = new Vector3(Mathf.Round(elementPivotRelativePosition.x / tileSize), Mathf.Round(elementPivotRelativePosition.z / tileSize));
 
         // Adjust offset caused by rotation
-        int rotationOffset = Mathf.RoundToInt(gridElement.transform.rotation.eulerAngles.y / 90);
+        int rotationOffset = GetRotationOffset(gridElement);
         switch (rotationOffset)
         {
             case 1:
@@ -157,7 +160,7 @@ public class Grid : MonoBehaviour
     {
         GridElement[] gridElements = initialLayout.GetComponentsInChildren<GridElement>();
 
-        foreach (GridElement gridElement in gridElements) 
+        foreach (GridElement gridElement in gridElements)
         {
             Vector3 finalPosition = GetPositionInsideGrid(gridElement);
             finalPosition.y = pivot.position.y;
@@ -170,4 +173,6 @@ public class Grid : MonoBehaviour
             UpdateTile(true, gridElement);
         }
     }
+
+    private int GetRotationOffset(GridElement gridElement) => Mathf.RoundToInt(gridElement.transform.rotation.eulerAngles.y / RotationStep);
 }
